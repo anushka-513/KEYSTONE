@@ -17,22 +17,26 @@ function Login() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        "http://localhost:8080/api/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
-        }
-      );
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+
+      const response = await fetch(`${apiBaseUrl}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
 
       if (!response.ok) {
-        throw new Error("Invalid email or password");
+        throw new Error(
+          response.status === 401
+            ? "Invalid email or password."
+            : `Login failed (${response.status}). Please try again.`
+        );
       }
 
       const data = await response.json();
@@ -40,14 +44,24 @@ function Login() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("userName", data.name);
       localStorage.setItem("userRole", data.role);
+
       window.dispatchEvent(new Event("keystone-auth-changed"));
 
       navigate(data.role === "CUSTOMER" ? "/customer-portal" : "/", {
         replace: true,
       });
     } catch (err) {
-      console.error(err);
-      setError("Invalid email or password.");
+      console.error("Login error:", err);
+
+      if (err instanceof TypeError) {
+        setError(
+          "Unable to connect to the server. Please try again in a moment."
+        );
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Something went wrong."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -56,7 +70,6 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-
         <div className="login-logo">
           <div className="logo-mark">K</div>
           <div>
@@ -70,36 +83,31 @@ function Login() {
           <p>Sign in to manage your field operations.</p>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-
           <div className="form-group">
-            <label>Email</label>
+            <label htmlFor="email">Email</label>
             <input
+              id="email"
               type="email"
               value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="Enter your email"
+              autoComplete="username"
               required
             />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label htmlFor="password">Password</label>
             <input
+              id="password"
               type="password"
               value={password}
-              onChange={(event) =>
-                setPassword(event.target.value)
-              }
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="Enter your password"
+              autoComplete="current-password"
               required
             />
           </div>
@@ -111,13 +119,11 @@ function Login() {
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>
-
         </form>
 
         <p className="demo-login">
           Demo login: rahul@keystone.com
         </p>
-
       </div>
     </div>
   );
