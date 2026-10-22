@@ -1,0 +1,19 @@
+.idea/
+**/target/
+**/node_modules/
+**/dist/
+.env
+.env.*
+!.env.example
+
+# Local configuration and secrets
+backend/src/main/resources/application.properties
+
+# Build output and dependencies
+backend/target/
+frontend/node_modules/
+frontend/dist/
+.idea/
+.env
+.env.*
+!.env.example
